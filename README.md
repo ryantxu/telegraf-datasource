@@ -3,7 +3,10 @@
 Stream data directly from telegraph to grafana
 
 
-1. Enable streaming in grafana.  In `conf/custom.ini`
+1. Enable streaming in grafana.  
+Run a version of grafana 7.2+ after July 27, 2020
+
+In `conf/custom.ini`
 ```
 [feature_toggles]
 enable = live
