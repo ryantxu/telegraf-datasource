@@ -41,7 +41,7 @@ export class ConfigEditor extends PureComponent<Props> {
             inputWidth={24}
             tooltip={"this should match the channel configured in telegraf"}
             onChange={e => this.onFormChange(e.target.value, "channel")}
-            value={jsonData.channel}
+            value={jsonData.channel || "telegraf"}
             placeholder="The channel name"
           />
         </div>

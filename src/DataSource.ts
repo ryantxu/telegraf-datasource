@@ -29,7 +29,7 @@ export class DataSource extends DataSourceApi<
   getStreamer() {
     return getMeasurementStreamer(this.instanceSettings.jsonData);
   }
-  
+
   query(
     options: DataQueryRequest<TelegrafQuery>
   ): Observable<DataQueryResponse> {

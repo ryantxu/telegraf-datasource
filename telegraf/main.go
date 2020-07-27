@@ -6,14 +6,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/ryantxu/telegraf-datasource/pkg/tds"
+	"github.com/ryantxu/telegraf-datasource/telegraf/tds"
 )
 
 func main() {
 	// Background thread
 	fmt.Println("starting http server")
 
-	b, err := tds.InitGrafanaLiveChannel("ws://localhost:3000/live/ws?format=protobuf", "sinal-over-ws")
+	b, err := tds.InitGrafanaLiveChannel("ws://localhost:3000/live/ws?format=protobuf", "telegraf")
 	if err != nil {
 		fmt.Errorf(err.Error())
 		os.Exit(1)

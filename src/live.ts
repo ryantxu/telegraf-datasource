@@ -5,7 +5,8 @@ import {
   KeyValue,
   FieldType,
   CircularDataFrame,
-  SelectableValue
+  SelectableValue,
+  LoadingState
 } from "@grafana/data";
 import { TelegrafDataSourceOptions } from "types";
 import { getGrafanaLiveSrv } from "@grafana/runtime";
@@ -35,8 +36,23 @@ class RecentMetrics implements MeasurementStreamer {
       }
     });
     srv.getChannelStream(channel).subscribe({
-      next: (v: any) => {
-        console.log("GOT", v);
+      next: (msgs: any) => {
+        for (const msg of msgs.metrics) {
+          const state = this.getState(msg.name as string);
+
+          const row = {
+            timestamp: msg.timestamp, // millis, not seconds * 1000,
+            ...msg.fields, // ...filterFields(msg.fields, s.filters),
+            ...msg.tags //...filterTags(msg.tags, s.filters),
+          };
+
+          state.frame.add(row, true);
+          state.subject.next({
+            data: [state.frame],
+            key: state.name,
+            state: LoadingState.Streaming
+          });
+        }
       }
     });
   }
@@ -66,12 +82,12 @@ class RecentMetrics implements MeasurementStreamer {
   }
 
   getMeasurements(): Array<SelectableValue<string>> {
-    return Object.values(this.cache).map( v => {
+    return Object.values(this.cache).map(v => {
       return {
         label: v.name,
         value: v.name,
-        description: v.frame.fields.map( f => f.name ).join(', '),
-      }
+        description: v.frame.fields.map(f => f.name).join(", ")
+      };
     });
   }
 }
@@ -82,10 +98,7 @@ export function getMeasurementStreamer(
   cfg: TelegrafDataSourceOptions
 ): MeasurementStreamer {
   if (!singleton) {
-    singleton = new RecentMetrics(
-      cfg.buffer || 1000,
-      cfg.channel || "telegraf"
-    );
+    singleton = new RecentMetrics(cfg.buffer || 250, cfg.channel || "telegraf");
   }
   return singleton;
 }

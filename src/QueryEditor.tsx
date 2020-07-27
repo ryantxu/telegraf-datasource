@@ -1,15 +1,14 @@
 import defaults from "lodash/defaults";
 
-import React, { PureComponent, ChangeEvent } from "react";
-import { QueryEditorProps } from "@grafana/data";
+import React, { PureComponent } from "react";
+import { QueryEditorProps, SelectableValue } from "@grafana/data";
 import { DataSource } from "./DataSource";
 import {
   TelegrafQuery,
   TelegrafDataSourceOptions,
   defaultQuery
 } from "./types";
-import { LegacyForms, Select } from "@grafana/ui";
-import { getMeasurementStreamer } from "live";
+import { Select } from "@grafana/ui";
 
 type Props = QueryEditorProps<
   DataSource,
@@ -22,9 +21,9 @@ interface State {}
 export class QueryEditor extends PureComponent<Props, State> {
   onComponentDidMount() {}
 
-  onMeasurementChange = (event: ChangeEvent<HTMLInputElement>) => {
+  onMeasurementChange = (v: SelectableValue<string>) => {
     const { onChange, query } = this.props;
-    onChange({ ...query, measurement: event.target.value });
+    onChange({ ...query, measurement: v.value });
   };
 
   render() {
@@ -33,12 +32,12 @@ export class QueryEditor extends PureComponent<Props, State> {
 
     const info = this.props.datasource.getStreamer();
     const measurments = info.getMeasurements();
-    let current = measurments.find( m => m.value === measurement );
-    if(!current) {
+    let current = measurments.find(m => m.value === measurement);
+    if (!current && measurement) {
       current = {
         label: measurement,
         value: measurement,
-        description: 'Unknown measurment',
+        description: "Unknown measurment"
       };
       measurments.push(current);
     }
@@ -48,7 +47,9 @@ export class QueryEditor extends PureComponent<Props, State> {
         <Select
           value={current}
           options={measurments}
-          onChange={this.onMeasurementChange} />
+          onChange={this.onMeasurementChange}
+          placeholder="Select measurment"
+        />
       </div>
     );
   }
