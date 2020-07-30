@@ -11,7 +11,7 @@
 
 # Make a dist dir if it does not exist
 [ -d "dist" ] && /bin/rm -rfv dist
-[ ! -d "dist" ] && mkdir -pv dist
+[ ! -d "../dist" ] && mkdir -pv "../dist"
 
 # Clone the telegraf repository
 git clone "https://github.com/influxdata/telegraf.git" "/tmp/telegraf"
@@ -59,7 +59,8 @@ done
 	cd "/tmp/telegraf"
 	make
 )
-cp -v "/tmp/telegraf/telegraf" ./dist
+
+cp -vf "/tmp/telegraf/telegraf" ../dist
 
 origdir=${PWD}
 # Run the build for plugins
@@ -74,4 +75,5 @@ origdir=${PWD}
 #	cd "${origdir}"
 #done
 
-chown -v -R $UID:$GID dist
+chown -v $UID:$GID ../dist/telegraf
+#chown -v $UID:$GID ../dist/*.so
