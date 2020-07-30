@@ -14,7 +14,6 @@ import (
 
 type Grafana struct {
 	Address string `toml:"address"`
-	Format  string `toml:"format"`
 	Channel string `toml:"channel"`
 
 	broker     *tds.GrafanaLiveChannel
@@ -25,15 +24,13 @@ var sampleConfig = `
 [[outputs.grafana]]
   # The address of the local grafana instance
   address = "localhost:3000"
-  # The format used for writing data into grafana
-  format = "protobuf"
   # The channel to write data into grafana with
   channel = "telegraf"
 `
 
 func (g *Grafana) Connect() error {
 	var err error
-	g.broker, err = tds.InitGrafanaLiveChannel(fmt.Sprintf("ws://%s/live/ws?format=%s", g.Address, g.Format), g.Channel)
+	g.broker, err = tds.InitGrafanaLiveChannel(fmt.Sprintf("ws://%s/live/ws?format=protobuf", g.Address, g.Format), g.Channel)
 	if err != nil {
 		return err
 	}
