@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Get rid of cp if it exists
+/bin/rm -rf /usr/local/bin/cp
+
+[ -d "${HOME}/telegraf" ] && /bin/rm -rf "${HOME}/telegraf"
+
+#apt-get --allow-insecure-repositories update
+#apt-get install --allow-unauthenticated -y gccgo-arm-linux-gnueabihf gcc-arm-linux-gnueabihf
+#go install -a -v runtime
+
+# Make a dist dir if it does not exist
+[ -d "dist" ] && /bin/rm -rfv dist
+[ ! -d "dist" ] && mkdir -pv dist
+
+# Clone the telegraf repository
+git clone "https://github.com/influxdata/telegraf.git" "${HOME}/telegraf"
+#git clone "https://github.com/rticommunity/telegraf.git" "${HOME}/telegraf"
+
+# Do this in a subshell because it will preserve the original directory
+(
+	cd "${HOME}/telegraf"
+	git fetch
+	git fetch --tags
+	git checkout "v1.15.1"
+)
+
+# Copy the telegraf directory over like an overlay to build
+#cp -vf Makefile "${HOME}/telegraf/Makefile"
+cp -vf go.mod "${HOME}/telegraf/go.mod"
+for d in $(find -mindepth 3 -maxdepth 3 -type d | cut -c 3-); do
+  echo "${d}"
+  [ -d "${HOME}/telegraf/${d}" ] || mkdir -pv "${HOME}/telegraf/${d}"
+  for d2 in $(ls $d); do
+    ln -vs "${PWD}/${d}/${d2}" "${HOME}/telegraf/${d}/${d2}"
+  done
+done
+
+# Run the build for telegraf
+(
+	cd "${HOME}/telegraf"
+	make
+)
+cp -v "${HOME}/telegraf/telegraf" ./dist
+
+origdir=${PWD}
+# Run the build for plugins
+#for d in $(find . -mindepth 3 -type d); do
+#     	dir=$(echo "$d" | cut -b 3-)   
+#	name=$(basename "$dir")
+#	echo "Building ${HOME}/telegraf/${dir}/${name}.go"
+#	cd "${HOME}/telegraf/${dir}"
+#	if grep "package main" "${name}.go"; then
+#		go build -buildmode=plugin -o "${origdir}/dist/${name}.so" "${name}.go"
+#        fi
+#	cd "${origdir}"
+#done
+
+chown -v -R $UID:$GID dist
