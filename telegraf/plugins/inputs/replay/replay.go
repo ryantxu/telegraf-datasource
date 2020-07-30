@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/grafana/enterprise-plugins/telegraf/plugins/inputs/replay/globpath"
+	"github.com/ryantxu/telegraf-datasource/telegraf/plugins/inputs/replay/globpath"
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/inputs"
 	"github.com/influxdata/telegraf/plugins/parsers"

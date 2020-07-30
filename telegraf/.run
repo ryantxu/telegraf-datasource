@@ -27,7 +27,7 @@ git clone "https://github.com/influxdata/telegraf.git" "${HOME}/telegraf"
 
 # Copy the telegraf directory over like an overlay to build
 #cp -vf Makefile "${HOME}/telegraf/Makefile"
-cp -vf go.mod "${HOME}/telegraf/go.mod"
+cp -vf ./etc/replacement.go.mod "${HOME}/telegraf/go.mod"
 for d in $(find -mindepth 3 -maxdepth 3 -type d | cut -c 3-); do
   echo "${d}"
   [ -d "${HOME}/telegraf/${d}" ] || mkdir -pv "${HOME}/telegraf/${d}"

@@ -30,7 +30,7 @@ var sampleConfig = `
 
 func (g *Grafana) Connect() error {
 	var err error
-	g.broker, err = tds.InitGrafanaLiveChannel(fmt.Sprintf("ws://%s/live/ws?format=protobuf", g.Address, g.Format), g.Channel)
+	g.broker, err = tds.InitGrafanaLiveChannel(fmt.Sprintf("ws://%s/live/ws?format=protobuf", g.Address), g.Channel)
 	if err != nil {
 		return err
 	}
