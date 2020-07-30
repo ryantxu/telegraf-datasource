@@ -5,7 +5,6 @@ go 1.14
 // replaced due to https://github.com/satori/go.uuid/issues/73
 replace (
 	github.com/ryantxu/telegraf-datasource => /Users/stephanie/src/plugins/telegraf-datasource
-	github.com/rticommunity/telegraf => /tmp/rtitelegraf
 	github.com/influxdata/telegraf => /tmp/telegraf
 	github.com/satori/go.uuid => github.com/gofrs/uuid v3.2.0+incompatible
 )
