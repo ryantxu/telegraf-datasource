@@ -9,7 +9,7 @@ import (
 	"github.com/influxdata/telegraf/plugins/outputs"
 	"github.com/influxdata/telegraf/plugins/serializers"
 	"github.com/influxdata/telegraf/plugins/serializers/json"
-	"github.com/ryantxu/telegraf-datasource/telegraf/tds"
+	"github.com/ryantxu/telegraf-datasource/telegraf/plugins/outputs/grafana/tds"
 )
 
 type Grafana struct {
