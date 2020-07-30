@@ -1,4 +1,4 @@
-package tds
+package grafanalive
 
 // Simple Go chat client for https://github.com/centrifugal/centrifuge/tree/master/examples/events example.
 

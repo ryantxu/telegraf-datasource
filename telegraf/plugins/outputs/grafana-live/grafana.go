@@ -1,4 +1,4 @@
-package grafana
+package grafanalive
 
 import (
 	"fmt"
@@ -9,14 +9,13 @@ import (
 	"github.com/influxdata/telegraf/plugins/outputs"
 	"github.com/influxdata/telegraf/plugins/serializers"
 	"github.com/influxdata/telegraf/plugins/serializers/json"
-	"github.com/ryantxu/telegraf-datasource/telegraf/plugins/outputs/grafana/tds"
 )
 
-type Grafana struct {
+type GrafanaLive struct {
 	Address string `toml:"address"`
 	Channel string `toml:"channel"`
 
-	broker     *tds.GrafanaLiveChannel
+	broker     *GrafanaLiveChannel
 	serializer serializers.Serializer
 }
 
@@ -28,9 +27,9 @@ var sampleConfig = `
   channel = "telegraf"
 `
 
-func (g *Grafana) Connect() error {
+func (g *GrafanaLive) Connect() error {
 	var err error
-	g.broker, err = tds.InitGrafanaLiveChannel(fmt.Sprintf("ws://%s/live/ws?format=protobuf", g.Address), g.Channel)
+	g.broker, err = InitGrafanaLiveChannel(fmt.Sprintf("ws://%s/live/ws?format=protobuf", g.Address), g.Channel)
 	if err != nil {
 		return err
 	}
@@ -38,19 +37,19 @@ func (g *Grafana) Connect() error {
 	return err
 }
 
-func (g *Grafana) Close() error {
+func (g *GrafanaLive) Close() error {
 	return nil
 }
 
-func (g *Grafana) SampleConfig() string {
+func (g *GrafanaLive) SampleConfig() string {
 	return sampleConfig
 }
 
-func (g *Grafana) Description() string {
+func (g *GrafanaLive) Description() string {
 	return "Send telegraf metrics to a grafana live stream"
 }
 
-func (g *Grafana) Write(metrics []telegraf.Metric) error {
+func (g *GrafanaLive) Write(metrics []telegraf.Metric) error {
 	b, err := g.serializer.SerializeBatch(metrics)
 	if err != nil {
 		return err
@@ -62,13 +61,13 @@ func (g *Grafana) Write(metrics []telegraf.Metric) error {
 }
 
 func init() {
-	outputs.Add("grafana", func() telegraf.Output {
+	outputs.Add("grafana-live", func() telegraf.Output {
 		// Set a default serializer. You should not use anything else.
 		serializer, err := json.NewSerializer(time.Duration(1) * time.Millisecond)
 		if err != nil {
 			log.Fatal("Could not initialize a json serializer")
 		}
-		return &Grafana{
+		return &GrafanaLive{
 			serializer: serializer,
 		}
 	})
