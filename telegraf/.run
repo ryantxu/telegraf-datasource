@@ -3,7 +3,7 @@
 # Get rid of cp if it exists
 /bin/rm -rf /usr/local/bin/cp
 
-[ -d "${HOME}/telegraf" ] && /bin/rm -rf "${HOME}/telegraf"
+[ -d "/tmp/telegraf" ] && /bin/rm -rf "/tmp/telegraf"
 
 #apt-get --allow-insecure-repositories update
 #apt-get install --allow-unauthenticated -y gccgo-arm-linux-gnueabihf gcc-arm-linux-gnueabihf
@@ -14,34 +14,52 @@
 [ ! -d "dist" ] && mkdir -pv dist
 
 # Clone the telegraf repository
-git clone "https://github.com/influxdata/telegraf.git" "${HOME}/telegraf"
-#git clone "https://github.com/rticommunity/telegraf.git" "${HOME}/telegraf"
+git clone "https://github.com/influxdata/telegraf.git" "/tmp/telegraf"
 
 # Do this in a subshell because it will preserve the original directory
 (
-	cd "${HOME}/telegraf"
+	cd "/tmp/telegraf"
 	git fetch
 	git fetch --tags
 	git checkout "v1.15.1"
 )
 
+IFS=$'\n'
+for line in $(awk '/\)/ {exit} /replace \(/ {f=1; next} f' ./etc/replacement.go.mod); do
+  repo=$(echo "${line}" | awk '{print $1}')
+  dir=$(echo "${line}" | awk '{print $3}')
+  echo "${dir}" | grep -E "^[\.\/]{1}" 
+  if [ $? -eq 0 ] && [ ! -d "${dir}" ]; then
+      git clone https://${repo}.git "${dir}"
+      pushd "${dir}"
+      if [ -f "Gopkg.toml" ]; then
+	/bin/rm -rf Gopkg.toml
+	/bin/rm -rf Gopkg.lock
+      fi
+      if [ ! -f "go.mod" ]; then
+	go mod init $repo
+      fi
+      popd
+  fi
+done
+
 # Copy the telegraf directory over like an overlay to build
-#cp -vf Makefile "${HOME}/telegraf/Makefile"
-cp -vf ./etc/replacement.go.mod "${HOME}/telegraf/go.mod"
+#cp -vf Makefile "/tmp/telegraf/Makefile"
+cp -vf ./etc/replacement.go.mod "/tmp/telegraf/go.mod"
 for d in $(find -mindepth 3 -maxdepth 3 -type d | cut -c 3-); do
   echo "${d}"
-  [ -d "${HOME}/telegraf/${d}" ] || mkdir -pv "${HOME}/telegraf/${d}"
+  [ -d "/tmp/telegraf/${d}" ] || mkdir -pv "/tmp/telegraf/${d}"
   for d2 in $(ls $d); do
-    ln -vs "${PWD}/${d}/${d2}" "${HOME}/telegraf/${d}/${d2}"
+    ln -vs "${PWD}/${d}/${d2}" "/tmp/telegraf/${d}/${d2}"
   done
 done
 
 # Run the build for telegraf
 (
-	cd "${HOME}/telegraf"
+	cd "/tmp/telegraf"
 	make
 )
-cp -v "${HOME}/telegraf/telegraf" ./dist
+cp -v "/tmp/telegraf/telegraf" ./dist
 
 origdir=${PWD}
 # Run the build for plugins
