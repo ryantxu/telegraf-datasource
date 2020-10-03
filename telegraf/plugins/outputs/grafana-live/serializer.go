@@ -45,16 +45,19 @@ func (s *serializer) SerializeBatch(metrics []telegraf.Metric) ([]byte, error) {
 func (s *serializer) createObject(metric telegraf.Metric) map[string]interface{} {
 	m := make(map[string]interface{}, 4)
 
+	m["name"] = metric.Name()
+	m["timestamp"] = metric.Time().UnixNano() / int64(s.TimestampUnits)
+
 	tagCount := len(metric.TagList())
 	if tagCount > 0 {
-		tags := make(map[string]string, tagCount)
+		labels := make(map[string]string, tagCount)
 		for _, tag := range metric.TagList() {
-			tags[tag.Key] = tag.Value
+			labels[tag.Key] = tag.Value
 		}
-		m["labels"] = tags
+		m["labels"] = labels
 	}
 
-	fields := make(map[string]interface{}, len(metric.FieldList()))
+	values := make(map[string]interface{}, len(metric.FieldList()))
 	for _, field := range metric.FieldList() {
 		switch fv := field.Value.(type) {
 		case float64:
@@ -63,27 +66,8 @@ func (s *serializer) createObject(metric telegraf.Metric) map[string]interface{}
 				continue
 			}
 		}
-		fields[field.Key] = field.Value
+		values[field.Key] = field.Value
 	}
-	m["fields"] = fields
-
-	m["name"] = metric.Name()
-	m["timestamp"] = metric.Time().UnixNano() / int64(s.TimestampUnits)
+	m["values"] = values
 	return m
-}
-
-func truncateDuration(units time.Duration) time.Duration {
-	// Default precision is 1s
-	if units <= 0 {
-		return time.Second
-	}
-
-	// Search for the power of ten less than the duration
-	d := time.Nanosecond
-	for {
-		if d*10 > units {
-			return d
-		}
-		d = d * 10
-	}
 }
