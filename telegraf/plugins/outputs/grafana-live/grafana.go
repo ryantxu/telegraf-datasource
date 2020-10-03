@@ -2,15 +2,14 @@ package grafanalive
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/outputs"
 	"github.com/influxdata/telegraf/plugins/serializers"
-	"github.com/influxdata/telegraf/plugins/serializers/json"
 )
 
+// GrafanaLive connects to grafana server
 type GrafanaLive struct {
 	Address string `toml:"address"`
 	Channel string `toml:"channel"`
@@ -38,6 +37,7 @@ func (g *GrafanaLive) Connect() error {
 }
 
 func (g *GrafanaLive) Close() error {
+
 	return nil
 }
 
@@ -62,13 +62,12 @@ func (g *GrafanaLive) Write(metrics []telegraf.Metric) error {
 
 func init() {
 	outputs.Add("grafana-live", func() telegraf.Output {
-		// Set a default serializer. You should not use anything else.
-		serializer, err := json.NewSerializer(time.Duration(1) * time.Millisecond)
-		if err != nil {
-			log.Fatal("Could not initialize a json serializer")
+		// This is the serializer that grafana will understand
+		s := &serializer{
+			TimestampUnits: truncateDuration(time.Duration(1) * time.Millisecond),
 		}
 		return &GrafanaLive{
-			serializer: serializer,
+			serializer: s,
 		}
 	})
 }
