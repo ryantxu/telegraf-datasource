@@ -64,7 +64,7 @@ func init() {
 	outputs.Add("grafana-live", func() telegraf.Output {
 		// This is the serializer that grafana will understand
 		s := &serializer{
-			TimestampUnits: truncateDuration(time.Duration(1) * time.Millisecond),
+			TimestampUnits: int64(time.Duration(1) * time.Millisecond),
 		}
 		return &GrafanaLive{
 			serializer: s,

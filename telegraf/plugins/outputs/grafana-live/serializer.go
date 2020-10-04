@@ -3,14 +3,13 @@ package grafanalive
 import (
 	"encoding/json"
 	"math"
-	"time"
 
 	"github.com/influxdata/telegraf"
 )
 
 // slightly different output format than the standard JSON
 type serializer struct {
-	TimestampUnits time.Duration
+	TimestampUnits int64
 }
 
 func (s *serializer) Serialize(metric telegraf.Metric) ([]byte, error) {
@@ -46,7 +45,7 @@ func (s *serializer) createObject(metric telegraf.Metric) map[string]interface{}
 	m := make(map[string]interface{}, 4)
 
 	m["name"] = metric.Name()
-	m["timestamp"] = metric.Time().UnixNano() / int64(s.TimestampUnits)
+	m["timestamp"] = metric.Time().UnixNano() / s.TimestampUnits
 
 	tagCount := len(metric.TagList())
 	if tagCount > 0 {
