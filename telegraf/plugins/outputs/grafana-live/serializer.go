@@ -45,12 +45,15 @@ func (s *serializer) createObject(metric telegraf.Metric) map[string]interface{}
 	m := make(map[string]interface{}, 4)
 
 	m["name"] = metric.Name()
-	m["timestamp"] = metric.Time().UnixNano() / s.TimestampUnits
+	m["time"] = metric.Time().UnixNano() / s.TimestampUnits
 
 	tagCount := len(metric.TagList())
 	if tagCount > 0 {
 		labels := make(map[string]string, tagCount)
 		for _, tag := range metric.TagList() {
+			if "name" == tag.Key || "host" == tag.Key {
+				continue // skip name and host
+			}
 			labels[tag.Key] = tag.Value
 		}
 		m["labels"] = labels
