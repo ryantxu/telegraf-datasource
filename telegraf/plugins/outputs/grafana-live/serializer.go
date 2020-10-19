@@ -31,7 +31,7 @@ func (s *serializer) SerializeBatch(metrics []telegraf.Metric) ([]byte, error) {
 	}
 
 	obj := map[string]interface{}{
-		"measures": objects,
+		"measurements": objects,
 	}
 
 	serialized, err := json.Marshal(obj)
