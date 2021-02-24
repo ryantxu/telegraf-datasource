@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/live"
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/outputs"
 	"github.com/influxdata/telegraf/plugins/serializers"
@@ -14,7 +15,8 @@ type GrafanaLive struct {
 	Address string `toml:"address"`
 	Channel string `toml:"channel"`
 
-	broker     *GrafanaLiveChannel
+	client     *live.GrafanaLiveClient
+	channels   map[string]*live.GrafanaLiveChannel
 	serializer serializers.Serializer
 }
 
@@ -28,10 +30,15 @@ var sampleConfig = `
 
 func (g *GrafanaLive) Connect() error {
 	var err error
-	g.broker, err = InitGrafanaLiveChannel(fmt.Sprintf("ws://%s/live/ws?format=protobuf", g.Address), g.Channel)
+
+	g.client, err = live.InitGrafanaLiveClient(live.ConnectionInfo{
+		URL: g.Address,
+	})
 	if err != nil {
 		return err
 	}
+	g.channels = make(map[string]*live.GrafanaLiveChannel)
+	g.client.Subscribe(live.ChannelAddress{})
 
 	return err
 }
@@ -49,13 +56,54 @@ func (g *GrafanaLive) Description() string {
 	return "Send telegraf metrics to a grafana live stream"
 }
 
-func (g *GrafanaLive) Write(metrics []telegraf.Metric) error {
-	b, err := g.serializer.SerializeBatch(metrics)
-	if err != nil {
-		return err
+func (g *GrafanaLive) getChannel(name string) *live.GrafanaLiveChannel {
+	c, ok := g.channels[name]
+	if ok {
+		return c
 	}
 
-	g.broker.Publish(b)
+	var err error
+	c, err = g.client.Subscribe(live.ChannelAddress{
+		Scope:     "grafana",
+		Namespace: "measurments",
+		Path:      g.Channel + "/" + name,
+	})
+	if err != nil {
+		fmt.Println("ERROR")
+	}
+	return c
+}
+
+type measurementsCollector struct {
+	ch      *live.GrafanaLiveChannel
+	metrics []telegraf.Metric
+}
+
+func (g *GrafanaLive) Write(metrics []telegraf.Metric) error {
+	measures := make(map[string]measurementsCollector)
+	for _, metric := range metrics {
+		name := metric.Name()
+		m, ok := measures[name]
+		if !ok {
+			m = measurementsCollector{
+				ch: g.getChannel(name),
+			}
+			measures[name] = m
+		}
+		m.metrics = append(m.metrics, metric)
+	}
+
+	for _, val := range measures {
+		if val.ch != nil {
+
+			b, err := g.serializer.SerializeBatch(val.metrics)
+			if err != nil {
+				return err
+			}
+
+			val.ch.Publish(b)
+		}
+	}
 
 	return nil
 }

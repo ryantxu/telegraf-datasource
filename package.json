@@ -12,13 +12,6 @@
   "author": "Grafana Labs",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@grafana/data": "canary",
-    "@grafana/toolkit": "canary",
-    "@grafana/runtime": "canary",
-    "@grafana/ui": "canary",
-    "@types/lodash": "latest"
-  },
-  "engines": {
-    "node": ">=12 <13"
+    "@grafana/toolkit": "latest"
   }
 }
