@@ -1,7 +1,6 @@
 package grafanalive
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/live"
@@ -12,8 +11,9 @@ import (
 
 // GrafanaLive connects to grafana server
 type GrafanaLive struct {
-	Address string `toml:"address"`
-	Channel string `toml:"channel"`
+	Address string          `toml:"address"`
+	Channel string          `toml:"channel"`
+	Log     telegraf.Logger `toml:"-"`
 
 	client     *live.GrafanaLiveClient
 	channels   map[string]*live.GrafanaLiveChannel
@@ -31,6 +31,7 @@ var sampleConfig = `
 func (g *GrafanaLive) Connect() error {
 	var err error
 
+	g.Log.Infof("Connecting to grafana live: %s", g.Address)
 	g.client, err = live.InitGrafanaLiveClient(live.ConnectionInfo{
 		URL: g.Address,
 	})
@@ -38,8 +39,7 @@ func (g *GrafanaLive) Connect() error {
 		return err
 	}
 	g.channels = make(map[string]*live.GrafanaLiveChannel)
-	g.client.Subscribe(live.ChannelAddress{})
-
+	g.client.Log.Info("Connected... waiting for data")
 	return err
 }
 
@@ -69,7 +69,9 @@ func (g *GrafanaLive) getChannel(name string) *live.GrafanaLiveChannel {
 		Path:      g.Channel + "/" + name,
 	})
 	if err != nil {
-		fmt.Println("ERROR")
+		g.client.Log.Error("error connecting", "p", name, "error", err)
+	} else {
+		g.client.Log.Info("Connected to channel", "p", name)
 	}
 	return c
 }
