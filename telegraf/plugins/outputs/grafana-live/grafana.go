@@ -11,9 +11,9 @@ import (
 
 // GrafanaLive connects to grafana server
 type GrafanaLive struct {
-	Address string          `toml:"address"`
-	Channel string          `toml:"channel"`
-	Log     telegraf.Logger `toml:"-"`
+	URL  string          `toml:"url"`
+	Path string          `toml:"path"`
+	Log  telegraf.Logger `toml:"-"`
 
 	client     *live.GrafanaLiveClient
 	channels   map[string]*live.GrafanaLiveChannel
@@ -31,9 +31,9 @@ var sampleConfig = `
 func (g *GrafanaLive) Connect() error {
 	var err error
 
-	g.Log.Infof("Connecting to grafana live: %s", g.Address)
+	g.Log.Infof("Connecting to grafana live: %s", g.URL)
 	g.client, err = live.InitGrafanaLiveClient(live.ConnectionInfo{
-		URL: g.Address,
+		URL: g.URL,
 	})
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func (g *GrafanaLive) getChannel(name string) *live.GrafanaLiveChannel {
 	addr := live.ChannelAddress{
 		Scope:     "grafana",
 		Namespace: "measurements",
-		Path:      g.Channel + "/" + name,
+		Path:      g.Path + "/" + name,
 	}
 	c, err = g.client.Subscribe(addr)
 	if err != nil {
