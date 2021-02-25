@@ -63,16 +63,18 @@ func (g *GrafanaLive) getChannel(name string) *live.GrafanaLiveChannel {
 	}
 
 	var err error
-	c, err = g.client.Subscribe(live.ChannelAddress{
+	addr := live.ChannelAddress{
 		Scope:     "grafana",
-		Namespace: "measurments",
+		Namespace: "measurements",
 		Path:      g.Channel + "/" + name,
-	})
-	if err != nil {
-		g.client.Log.Error("error connecting", "p", name, "error", err)
-	} else {
-		g.client.Log.Info("Connected to channel", "p", name)
 	}
+	c, err = g.client.Subscribe(addr)
+	if err != nil {
+		g.Log.Error("error connecting", "addr", addr, "error", err)
+	} else {
+		g.Log.Info("Connected to channel", "addr", addr)
+	}
+	g.channels[name] = c
 	return c
 }
 
@@ -90,21 +92,27 @@ func (g *GrafanaLive) Write(metrics []telegraf.Metric) error {
 			m = measurementsCollector{
 				ch: g.getChannel(name),
 			}
-			measures[name] = m
 		}
 		m.metrics = append(m.metrics, metric)
+		measures[name] = m
 	}
 
-	for _, val := range measures {
-		if val.ch != nil {
-
-			b, err := g.serializer.SerializeBatch(val.metrics)
-			if err != nil {
-				return err
-			}
-
-			val.ch.Publish(b)
+	for key, val := range measures {
+		if val.ch == nil {
+			continue
 		}
+
+		if len(val.metrics) < 1 {
+			g.Log.Warn("no metrics for: ", key)
+			continue
+		}
+
+		b, err := g.serializer.SerializeBatch(val.metrics)
+		if err != nil {
+			return err
+		}
+
+		val.ch.Publish(b)
 	}
 
 	return nil
