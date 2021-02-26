@@ -4,7 +4,7 @@ Example
 ```
 [[outputs.grafana-live]]
   # This points to your running grafana instance
-  address = "localhost:3000"
+  address = "http://localhost:3000"
   # The channel that you want to publish messages to
-  channel = "grafana/measurements/telegraf"
+  channel = "telegraf"
 ```

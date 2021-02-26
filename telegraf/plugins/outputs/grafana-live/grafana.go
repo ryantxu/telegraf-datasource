@@ -1,9 +1,9 @@
 package grafanalive
 
 import (
-	"fmt"
 	"time"
 
+	"github.com/grafana/grafana-plugin-sdk-go/live"
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/outputs"
 	"github.com/influxdata/telegraf/plugins/serializers"
@@ -11,10 +11,12 @@ import (
 
 // GrafanaLive connects to grafana server
 type GrafanaLive struct {
-	Address string `toml:"address"`
-	Channel string `toml:"channel"`
+	URL  string          `toml:"url"`
+	Path string          `toml:"path"`
+	Log  telegraf.Logger `toml:"-"`
 
-	broker     *GrafanaLiveChannel
+	client     *live.GrafanaLiveClient
+	channels   map[string]*live.GrafanaLiveChannel
 	serializer serializers.Serializer
 }
 
@@ -28,11 +30,16 @@ var sampleConfig = `
 
 func (g *GrafanaLive) Connect() error {
 	var err error
-	g.broker, err = InitGrafanaLiveChannel(fmt.Sprintf("ws://%s/live/ws?format=protobuf", g.Address), g.Channel)
+
+	g.Log.Infof("Connecting to grafana live: %s", g.URL)
+	g.client, err = live.InitGrafanaLiveClient(live.ConnectionInfo{
+		URL: g.URL,
+	})
 	if err != nil {
 		return err
 	}
-
+	g.channels = make(map[string]*live.GrafanaLiveChannel)
+	g.client.Log.Info("Connected... waiting for data")
 	return err
 }
 
@@ -49,13 +56,64 @@ func (g *GrafanaLive) Description() string {
 	return "Send telegraf metrics to a grafana live stream"
 }
 
-func (g *GrafanaLive) Write(metrics []telegraf.Metric) error {
-	b, err := g.serializer.SerializeBatch(metrics)
-	if err != nil {
-		return err
+func (g *GrafanaLive) getChannel(name string) *live.GrafanaLiveChannel {
+	c, ok := g.channels[name]
+	if ok {
+		return c
 	}
 
-	g.broker.Publish(b)
+	var err error
+	addr := live.ChannelAddress{
+		Scope:     "grafana",
+		Namespace: "measurements",
+		Path:      g.Path + "/" + name,
+	}
+	c, err = g.client.Subscribe(addr)
+	if err != nil {
+		g.Log.Error("error connecting", "addr", addr, "error", err)
+	} else {
+		g.Log.Info("Connected to channel", "addr", addr)
+	}
+	g.channels[name] = c
+	return c
+}
+
+type measurementsCollector struct {
+	ch      *live.GrafanaLiveChannel
+	metrics []telegraf.Metric
+}
+
+func (g *GrafanaLive) Write(metrics []telegraf.Metric) error {
+	measures := make(map[string]measurementsCollector)
+	for _, metric := range metrics {
+		name := metric.Name()
+		m, ok := measures[name]
+		if !ok {
+			m = measurementsCollector{
+				ch: g.getChannel(name),
+			}
+		}
+		m.metrics = append(m.metrics, metric)
+		measures[name] = m
+	}
+
+	for key, val := range measures {
+		if val.ch == nil {
+			continue
+		}
+
+		if len(val.metrics) < 1 {
+			g.Log.Warn("no metrics for: ", key)
+			continue
+		}
+
+		b, err := g.serializer.SerializeBatch(val.metrics)
+		if err != nil {
+			return err
+		}
+
+		val.ch.Publish(b)
+	}
 
 	return nil
 }
